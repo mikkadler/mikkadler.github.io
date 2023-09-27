@@ -119,6 +119,22 @@ body {
   right: 5vh;
 }
 
+.basic-user-info{
+  border: 1px solid black;
+  height: auto;
+  width: fit-content;
+  margin : 2vh;
+  padding : 2vh;
+}
+
+.xp-amount{
+  border: 1px solid black;
+  height: auto;
+  width: fit-content;
+  margin : 2vh;
+  padding : 2vh;
+}
+
 form {
   display: flex;
   flex-direction: column;

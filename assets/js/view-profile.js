@@ -1,25 +1,21 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+import { DeleteCookie, GetCookieValue } from "./cookie.js";
 
-export function ProfileView(token){
-    const profile = queryProfile(token); 
+export function ProfileView(){
 
     const root = document.querySelector('#app');
     root.replaceChildren();
-    root.append(profile);
+    root.append(basicUserInfo(), XpAmount());
     root.append(basicGraph());
     root.append(logoutButton());
 }
 
-function queryProfile(token) {
+function basicUserInfo() {
 
-    if (!token) return;
-    const splittedToken = token.split('.');
-    const string = atob(splittedToken[1]);
-    console.log(string);
-
-    const div = document.createElement('div');
-    div.innerText = 'Profile';
-    div.id = 'div';
+    const basicUserInfo = document.createElement('div');
+    basicUserInfo.innerText = 'Profile';
+    basicUserInfo.id = 'basicUserInfo';
+    basicUserInfo.className = 'basic-user-info';
 
     const query = `
     {
@@ -31,8 +27,88 @@ function queryProfile(token) {
           }
     }
     `
+    const drawBasicUserInfo = (data) => {
+        const basicUserInfo = document.getElementById("basicUserInfo");
+        basicUserInfo.innerText = 
+        `Welcome ${data.firstName} / ${data.login}!
+        You id in school system is: ${data.id}
+        You audit ratio at the moment is ${data.auditRatio.toFixed(2)}`
+    }
 
-    fetch('https://01.kood.tech/api/graphql-engine/v1/graphql',{
+    queryAPI(query, drawBasicUserInfo);
+
+    return basicUserInfo
+}
+
+function XpAmount () {
+
+    const xpa = document.createElement('div');
+    xpa.className = 'xp-amount';
+    xpa.id = 'xpAmount';
+    const rootEvent = 85; // "Div 01" root event id
+
+    const query= `
+    {
+        user {
+          transactions_aggregate(where: {type: {_eq: "xp"}, eventId: {_eq: 85}}) {
+            aggregate {
+              sum {
+                amount
+              }
+            }
+          }
+          transactions(limit: 4, where: {type: {_eq: "xp"}}, order_by: {createdAt: desc}) {
+            amount
+            object {
+              name
+              type
+            }
+          }
+        }
+      }
+    `
+
+    const drawXpAmount = (data) => {
+        console.log(data);
+        const xpa = document.getElementById('xpAmount');
+        const xpkb = (data.transactions_aggregate.aggregate.sum.amount / 1000).toFixed(1);
+
+        const project = (index) => {
+            if (!data.transactions[index]) return `<li></li>`;
+            return `<li>${data.transactions[index].object.type} - ${data.transactions[index].object.name}
+            ${(data.transactions[index].amount/1000).toPrecision(3)} kB</li>`;
+        };
+
+        xpa.innerHTML =`
+        <div>
+          <div>${xpkb} kB</div>
+        </div>
+        <div>
+          <div class="activity-border">Latest activity</div>
+          <ul>
+            ${project(0)}
+            ${project(1)}
+            ${project(2)}
+            ${project(3)}
+          </ul>
+        </div>
+      `;
+    }
+
+    queryAPI(query, drawXpAmount);
+
+    return xpa
+}
+
+function queryAPI(query, drawFunction) {
+
+    const apiAddress = 'https://01.kood.tech/api/graphql-engine/v1/graphql';
+    const token = GetCookieValue("token");
+
+    // dont query anything if no token present
+    if (!token) return;
+
+    fetch(apiAddress,{
         method: 'POST',
         headers: {
             "Content-Type": "application/json",
@@ -43,17 +119,13 @@ function queryProfile(token) {
         if (response.ok) {
             return response.json();
         }else {
-            console.error('something went wrong');
+            console.error('Request to the API failed with status code ' + response.status);
         }
     }).then(data => {
-        const div = document.getElementById('div');
-        console.log(data);
-        div.innerText = data.data.user[0].id;
+        drawFunction(data.data.user[0]);
     }).catch(err => {
         console.error(err);
     });
-
-    return div
 }
 
 function basicGraph () {
@@ -101,12 +173,8 @@ function logoutButton() {
     button.className = "logout";
     button.onclick = (e) => {
         e.preventDefault();
-        deleteCookie("token");
+        DeleteCookie("token");
         location.reload();
     }
     return button;
-}
-
-function deleteCookie(name) {
-    document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax';
 }

@@ -1,3 +1,4 @@
+import { SetCookie } from "./cookie.js";
 import { ProfileView } from "./view-profile.js";
 
 export function LoginView(){
@@ -42,7 +43,6 @@ function loginForm(){
     loginButton.onclick = (e) => {
         e.preventDefault();
         login(usernameInput, passwordInput);
-        //
     }
     loginButton.innerText = "Login";
 
@@ -59,7 +59,7 @@ function loginForm(){
     return loginContainer;
 }
 
-async function login(ident, password) {
+function login(ident, password) {
     const credentials = ident.value + ":" + password.value
     const basicCredentials = btoa(credentials);
 
@@ -82,11 +82,9 @@ async function login(ident, password) {
         const expirationDate = new Date();
         expirationDate.setTime(expirationDate.getTime() + 6 * 60 * 60 * 1000); // 6 hour in milliseconds
 
-        const expires = `expires=${expirationDate.toUTCString()}`;
+        SetCookie("token", token, expirationDate);
 
-        document.cookie = `token=${token}; ${expires}; path=/; SameSite=Lax`;
-
-        ProfileView(token);
+        ProfileView();
 
     }).catch((err) => {
         console.error(err);

@@ -135,6 +135,37 @@ body {
   padding : 2vh;
 }
 
+.grades{
+  border: 1px solid black;
+  height: auto;
+  width: fit-content;
+  margin : 2vh;
+  padding : 2vh;
+}
+
+.table-row{
+  display: flex;
+  flex-direction: row;
+}
+
+.table-cell{
+  border: 0.5px solid gray;
+  margin : 0.2vh;
+  padding : 0.2vh;
+  min-width: 55px;
+  text-align: center;
+}
+
+.cell-1 {
+  flex-grow: 1;
+  text-align: left;
+}
+
+.table-header{
+  font-weight: bolder;
+  text-align: center;
+}
+
 form {
   display: flex;
   flex-direction: column;

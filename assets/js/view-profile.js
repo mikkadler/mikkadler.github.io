@@ -1,21 +1,21 @@
-import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm";
 import { DeleteCookie, GetCookieValue } from "./cookie.js";
 
 export function ProfileView(){
 
     const root = document.querySelector('#app');
     root.replaceChildren();
-    root.append(basicUserInfo(), XpAmount());
-    root.append(basicGraph());
+    root.append(basicUserInfo(), xpAmount(), grades());
+    root.append(onlineTestAttempts(), xpOverTime());
     root.append(logoutButton());
 }
 
 function basicUserInfo() {
 
     const basicUserInfo = document.createElement('div');
-    basicUserInfo.innerText = 'Profile';
     basicUserInfo.id = 'basicUserInfo';
     basicUserInfo.className = 'basic-user-info';
+    basicUserInfo.title = 'Basic User Information';
 
     const query = `
     {
@@ -27,7 +27,8 @@ function basicUserInfo() {
           }
     }
     `
-    const drawBasicUserInfo = (data) => {
+    const drawBasicUserInfo = (input) => {
+        const data = input.user[0];
         const basicUserInfo = document.getElementById("basicUserInfo");
         basicUserInfo.innerText = 
         `Welcome ${data.firstName} / ${data.login}!
@@ -40,11 +41,12 @@ function basicUserInfo() {
     return basicUserInfo
 }
 
-function XpAmount () {
+function xpAmount() {
 
     const xpa = document.createElement('div');
     xpa.className = 'xp-amount';
     xpa.id = 'xpAmount';
+    xpa.title = "Amount of XP";
     const rootEvent = 85; // "Div 01" root event id
 
     const query= `
@@ -68,8 +70,8 @@ function XpAmount () {
       }
     `
 
-    const drawXpAmount = (data) => {
-        console.log(data);
+    const drawXpAmount = (input) => {
+        const data = input.user[0];
         const xpa = document.getElementById('xpAmount');
         const xpkb = (data.transactions_aggregate.aggregate.sum.amount / 1000).toFixed(1);
 
@@ -100,6 +102,132 @@ function XpAmount () {
     return xpa
 }
 
+function grades() {
+    const grades = document.createElement('div');
+    grades.className = 'grades';
+    grades.id = 'grades';
+    grades.title = 'Grades';
+
+    const query = `
+    {
+        result(where: {type: {_eq: "user_audit"}}) {
+          grade
+          object{
+            name
+          }
+        }
+      }
+    `
+
+    const drawGrades = (input) => {
+        const data = input.result;
+        const grades = document.getElementById('grades');
+        const tableHeader = document.createElement('div');
+        tableHeader.innerHTML = `<div class="table-row">
+            <div class="cell-1 table-cell table-header">Task name</div>
+            <div class="table-cell table-header">Grade</div>
+        </div>`
+        grades.append(tableHeader);
+
+        data.forEach(element => {
+            const tableRow = document.createElement('div');
+            tableRow.className = "table-row";
+            const cell_1 = document.createElement('div');
+            cell_1.className = "cell-1 table-cell";
+            const cell_2 = document.createElement('div');
+            cell_2.className = "table-cell";
+
+            cell_1.innerText = `${element.object.name}`;
+            cell_2.innerText = `${element.grade.toPrecision(3)}`;
+
+            tableRow.append(cell_1, cell_2);
+            grades.appendChild(tableRow);
+        });
+    };
+
+    queryAPI(query, drawGrades);
+
+    return grades
+}
+
+function onlineTestAttempts() {
+    const ota = document.createElement('div');
+    ota.id = "onlineTestAttempts";
+    ota.className = "online-test-attempts";
+    ota.title = "Online Test Attempts";
+
+    const query = `
+    {
+        result(where: {object: {name: {_eq: "Online test"}} }) {
+          attrs
+        }
+      }
+    `
+    
+    const drawOta = (input) => {
+        const ota = document.getElementById("onlineTestAttempts");
+        const data = input.result[0].attrs.games[1];
+        const results = data.results;
+
+        const plot = Plot.plot({
+            style: {backgroundColor: "inherit"},
+            marks: [
+                Plot.barY(results, {x: "level", y: "attempts", fill: "steelblue", tip: true}),
+                Plot.ruleY([0])
+            ]
+        })
+        ota.append(plot);
+    };
+
+    queryAPI(query, drawOta);
+
+    return ota;
+}
+
+function xpOverTime() {
+    const xot = document.createElement('div');
+    xot.className = 'xp-over-time';
+    xot.id = 'xpOverTime';
+    xot.title = 'XP over time';
+    
+    const query = `{
+        user {
+          transactions(
+            where: {type: {_eq: "xp"}, eventId: {_eq: 85}}
+            order_by: {createdAt: asc}
+          ) {
+            amount
+            createdAt
+            object {
+              name
+            }
+          }
+        }
+      }`
+
+    const drawXPOverTime = (input) => {
+        const data = input.user[0].transactions;
+        console.log(data);
+
+        const xot = document.getElementById('xpOverTime');
+        const plot =  Plot.plot({
+            width: 1550,
+            style: {backgroundColor: "inherit"},
+            y: {grid: true, label: "xp over time"},
+            marks: [
+                Plot.ruleY([0]),
+                Plot.areaY(data, {x: "createdAt", y1: "amount", fill: "steelblue"}),
+                Plot.frame()
+            ]
+        })
+        xot.append(plot);
+    };
+
+    queryAPI(query, drawXPOverTime);
+
+    return xot
+}
+
 function queryAPI(query, drawFunction) {
 
     const apiAddress = 'https://01.kood.tech/api/graphql-engine/v1/graphql';
@@ -122,49 +250,10 @@ function queryAPI(query, drawFunction) {
             console.error('Request to the API failed with status code ' + response.status);
         }
     }).then(data => {
-        drawFunction(data.data.user[0]);
+        drawFunction(data.data);
     }).catch(err => {
         console.error(err);
     });
-}
-
-function basicGraph () {
-// Declare the chart dimensions and margins.
-const width = 640;
-const height = 400;
-const marginTop = 20;
-const marginRight = 20;
-const marginBottom = 30;
-const marginLeft = 40;
-
-// Declare the x (horizontal position) scale.
-const x = d3.scaleUtc()
-    .domain([new Date("2023-01-01"), new Date("2024-01-01")])
-    .range([marginLeft, width - marginRight]);
-
-// Declare the y (vertical position) scale.
-const y = d3.scaleLinear()
-    .domain([0, 100])
-    .range([height - marginBottom, marginTop]);
-
-// Create the SVG container.
-const svg = d3.create("svg")
-    .attr("width", width)
-    .attr("height", height);
-
-// Add the x-axis.
-svg.append("g")
-    .attr("transform", `translate(0,${height - marginBottom})`)
-    .call(d3.axisBottom(x));
-
-// Add the y-axis.
-svg.append("g")
-    .attr("transform", `translate(${marginLeft},0)`)
-    .call(d3.axisLeft(y));
-
-// Append the SVG element.
-//container.append(svg.node());
-return svg.node();
 }
 
 function logoutButton() {

@@ -208,15 +208,23 @@ function xpOverTime() {
     const drawXPOverTime = (input) => {
         const data = input.user[0].transactions;
         console.log(data);
+        let maxDate = Date.now();
+        data.forEach((value, index) => {
+            value.name = value.object.name;
+            value.date = Date.parse(value.createdAt);
+            value.xpTotal = index > 0 ? data[index - 1].xpTotal + value.amount : value.amount;
+        });
 
         const xot = document.getElementById('xpOverTime');
         const plot =  Plot.plot({
-            width: 1550,
+            width: 1200,
+            marginLeft: 60,
             style: {backgroundColor: "inherit"},
-            y: {grid: true, label: "xp over time"},
+            y: {grid: true, label: "xp over time in Bytes"},
+            x: {type: "utc", domain: [data[0].date, data[data.length - 1].date], grid: true},
             marks: [
-                Plot.ruleY([0]),
-                Plot.areaY(data, {x: "createdAt", y1: "amount", fill: "steelblue"}),
+                Plot.lineY(data, {x: "date", y: "xpTotal", stroke: "steelblue", tip: true}),
+                //Plot.dot(data, {x: "date", y1: "name", fill: "black"}),
                 Plot.frame()
             ]
         })

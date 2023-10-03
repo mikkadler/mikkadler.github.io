@@ -80,7 +80,7 @@ function login(ident, password) {
     }).then ((token) => {
 
         const expirationDate = new Date();
-        expirationDate.setTime(expirationDate.getTime() + 6 * 60 * 60 * 1000); // 6 hour in milliseconds
+        expirationDate.setTime(expirationDate.getTime() + 6 * 60 * 60 * 1000); // 6 hours in milliseconds
 
         SetCookie("token", token, expirationDate);
 

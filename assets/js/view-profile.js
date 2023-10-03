@@ -5,7 +5,19 @@ export function ProfileView(){
 
     const root = document.querySelector('#app');
     root.replaceChildren();
-    root.append(basicUserInfo(), xpAmount(), grades());
+
+    const fc1 = document.createElement('div');
+    fc1.className = 'flex-container';
+    const fc2 = document.createElement('div');
+    fc2.className = 'flex-container-inner';
+    const fc3 = document.createElement('div');
+    fc3.className = ('flex-container-inner');
+
+    fc2.append(basicUserInfo(), xpAmount());
+    fc3.append(grades());
+    fc1.append(fc2, fc3);
+    root.append(fc1);
+
     root.append(onlineTestAttempts(), xpOverTime());
     root.append(logoutButton());
 }
@@ -14,7 +26,7 @@ function basicUserInfo() {
 
     const basicUserInfo = document.createElement('div');
     basicUserInfo.id = 'basicUserInfo';
-    basicUserInfo.className = 'basic-user-info';
+    basicUserInfo.className = 'card basic-user-info';
     basicUserInfo.title = 'Basic User Information';
 
     const query = `
@@ -44,7 +56,7 @@ function basicUserInfo() {
 function xpAmount() {
 
     const xpa = document.createElement('div');
-    xpa.className = 'xp-amount';
+    xpa.className = 'card xp-amount';
     xpa.id = 'xpAmount';
     xpa.title = "Amount of XP";
     const rootEvent = 85; // "Div 01" root event id
@@ -59,7 +71,7 @@ function xpAmount() {
               }
             }
           }
-          transactions(limit: 4, where: {type: {_eq: "xp"}}, order_by: {createdAt: desc}) {
+          transactions(limit: 6, where: {type: {_eq: "xp"}, eventId: {_eq: 85}}, order_by: {createdAt: desc}) {
             amount
             object {
               name
@@ -83,7 +95,7 @@ function xpAmount() {
 
         xpa.innerHTML =`
         <div>
-          <div>${xpkb} kB</div>
+          <div class="font40"><span>${xpkb}</span> kB</div>
         </div>
         <div>
           <div class="activity-border">Latest activity</div>
@@ -92,6 +104,8 @@ function xpAmount() {
             ${project(1)}
             ${project(2)}
             ${project(3)}
+            ${project(4)}
+            ${project(5)}
           </ul>
         </div>
       `;
@@ -104,7 +118,7 @@ function xpAmount() {
 
 function grades() {
     const grades = document.createElement('div');
-    grades.className = 'grades';
+    grades.className = 'card grades';
     grades.id = 'grades';
     grades.title = 'Grades';
 
@@ -153,7 +167,7 @@ function grades() {
 function onlineTestAttempts() {
     const ota = document.createElement('div');
     ota.id = "onlineTestAttempts";
-    ota.className = "online-test-attempts";
+    ota.className = "card graph";
     ota.title = "Online Test Attempts";
 
     const query = `
@@ -171,12 +185,18 @@ function onlineTestAttempts() {
 
         const plot = Plot.plot({
             style: {backgroundColor: "inherit"},
+            marginRight: 40,
             marks: [
                 Plot.barY(results, {x: "level", y: "attempts", fill: "steelblue", tip: true}),
                 Plot.ruleY([0])
             ]
         })
-        ota.append(plot);
+
+        const header = document.createElement("div")
+        header.className = "chart-header";
+        header.innerText = `This graph represents Your attempts to solve the levels of the online game "${data.name}".`;
+
+        ota.append(header, plot);
     };
 
     queryAPI(query, drawOta);
@@ -186,7 +206,7 @@ function onlineTestAttempts() {
 
 function xpOverTime() {
     const xot = document.createElement('div');
-    xot.className = 'xp-over-time';
+    xot.className = 'card graph';
     xot.id = 'xpOverTime';
     xot.title = 'XP over time';
     
@@ -207,8 +227,6 @@ function xpOverTime() {
 
     const drawXPOverTime = (input) => {
         const data = input.user[0].transactions;
-        console.log(data);
-        let maxDate = Date.now();
         data.forEach((value, index) => {
             value.name = value.object.name;
             value.date = Date.parse(value.createdAt);
@@ -217,18 +235,21 @@ function xpOverTime() {
 
         const xot = document.getElementById('xpOverTime');
         const plot =  Plot.plot({
-            width: 1200,
             marginLeft: 60,
             style: {backgroundColor: "inherit"},
             y: {grid: true, label: "xp over time in Bytes"},
             x: {type: "utc", domain: [data[0].date, data[data.length - 1].date], grid: true},
             marks: [
                 Plot.lineY(data, {x: "date", y: "xpTotal", stroke: "steelblue", tip: true}),
-                //Plot.dot(data, {x: "date", y1: "name", fill: "black"}),
                 Plot.frame()
             ]
         })
-        xot.append(plot);
+
+        const header = document.createElement("div")
+        header.className = "chart-header";
+        header.innerText = `This graph represents Your XP recieved over time.`;
+
+        xot.append(header, plot);
     };
 
     queryAPI(query, drawXPOverTime);

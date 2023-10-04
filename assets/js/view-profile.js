@@ -89,7 +89,8 @@ function xpAmount() {
 
         const project = (index) => {
             if (!data.transactions[index]) return `<li></li>`;
-            return `<li>${data.transactions[index].object.type} - ${data.transactions[index].object.name}
+            return data.transactions[index].amount >= 1000000 ? `<li>${data.transactions[index].object.type} - ${data.transactions[index].object.name}
+            ${(data.transactions[index].amount/1000000).toPrecision(3)} MB</li>` : `<li>${data.transactions[index].object.type} - ${data.transactions[index].object.name}
             ${(data.transactions[index].amount/1000).toPrecision(3)} kB</li>`;
         };
 
@@ -180,7 +181,7 @@ function onlineTestAttempts() {
     
     const drawOta = (input) => {
         const ota = document.getElementById("onlineTestAttempts");
-        const data = input.result[0].attrs.games[1];
+        const data = input.result[input.result.length-1].attrs.games[1];
         const results = data.results;
 
         const plot = Plot.plot({
